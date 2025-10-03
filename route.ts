@@ -4,14 +4,7 @@ export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
 
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        { error: "Missing OpenAI API key" },
-        { status: 500 }
-      );
-    }
-
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -19,18 +12,20 @@ export async function POST(req: Request) {
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
-        messages,
+        messages: messages.map((m: any) => ({
+          role: m.role,
+          content: m.content,
+        })),
       }),
     });
 
-    const data = await response.json();
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content || "⚠️ No reply";
 
-    return NextResponse.json({
-      response: data.choices?.[0]?.message?.content || "No reply",
-    });
+    return NextResponse.json({ response: reply });
   } catch (err) {
     return NextResponse.json(
-      { error: "Error connecting to AI" },
+      { response: "❌ Error: Failed to connect to OpenAI" },
       { status: 500 }
     );
   }
