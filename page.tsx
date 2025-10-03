@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef, useEffect } from "react";
 
 type Message = {
@@ -9,7 +8,7 @@ type Message = {
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hello! How can I help you today?" }
+    { role: "assistant", content: "👋 Hi! I’m your AI assistant. How can I help?" },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,78 +31,56 @@ export default function Home() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [...messages, userMsg] })
+        body: JSON.stringify({ messages: [...messages, userMsg] }),
       });
 
       const data = await res.json();
       setMessages(prev => [
         ...prev,
-        { role: "assistant", content: data.response || "No reply." }
+        { role: "assistant", content: data.response || "⚠️ No reply" },
       ]);
     } catch (err) {
       setMessages(prev => [
         ...prev,
-        { role: "assistant", content: "⚠️ Error: Could not connect to AI." }
+        { role: "assistant", content: "❌ Error: Could not connect to AI." },
       ]);
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   return (
     <main className="flex flex-col min-h-screen bg-black text-white">
-      <header className="flex flex-col items-center justify-center mt-12 mb-6">
-        <span className="text-6xl">⚡</span>
-        <h1 className="text-4xl md:text-5xl font-extrabold text-center mb-2">
-          TIMBROWN AI
-        </h1>
-        <p className="text-lg text-gray-400 text-center">
-          Your personal AI assistant
-        </p>
-      </header>
-
-      <section className="flex-1 w-full flex flex-col items-center">
-        <div className="w-full max-w-xl flex flex-col-reverse gap-2 overflow-y-auto px-2 mb-4"
-             style={{ minHeight: 180, maxHeight: 320 }}>
-          <div ref={chatEndRef} />
-          {messages.slice().reverse().map((msg, idx) => (
-            <div key={idx} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div
-                className={`px-4 py-2 rounded-2xl max-w-[80%] shadow ${
-                  msg.role === "user"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-800 text-white border border-gray-700"
-                }`}
-              >
-                {msg.content}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <form
-        onSubmit={sendMessage}
-        className="w-full max-w-xl mx-auto px-4 pb-6 fixed left-1/2 -translate-x-1/2 bottom-0"
-      >
-        <div className="flex items-center gap-2 bg-gray-900 rounded-2xl shadow border border-gray-800 p-2">
-          <input
-            type="text"
-            className="flex-1 bg-transparent text-white placeholder-gray-500 px-4 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Ask anything..."
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            disabled={loading}
-            autoFocus
-          />
-          <button
-            type="submit"
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-2 disabled:opacity-50"
-            disabled={loading || !input.trim()}
+      <h1 className="text-3xl font-bold text-center py-6">🤖 AI Assistant</h1>
+      <div className="flex-1 overflow-y-auto px-4">
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`my-2 p-3 rounded-lg max-w-[75%] ${
+              msg.role === "user" ? "bg-blue-600 ml-auto" : "bg-gray-700"
+            }`}
           >
-            {loading ? "..." : "Send"}
-          </button>
-        </div>
+            {msg.content}
+          </div>
+        ))}
+        <div ref={chatEndRef} />
+      </div>
+      <form onSubmit={sendMessage} className="flex p-4 bg-gray-900">
+        <input
+          type="text"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="Type your message..."
+          className="flex-1 p-2 rounded bg-gray-800 text-white"
+          disabled={loading}
+        />
+        <button
+          type="submit"
+          className="ml-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded"
+          disabled={loading}
+        >
+          {loading ? "..." : "Send"}
+        </button>
       </form>
     </main>
   );
