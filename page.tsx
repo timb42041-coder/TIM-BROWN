@@ -1,87 +1,94 @@
-"use client";
-import { useState, useRef, useEffect } from "react";
+'use client'
+
+import React, { useState, useRef, useEffect } from 'react';
 
 type Message = {
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string;
 };
 
-export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "👋 Hi! I’m your AI assistant. How can I help?" },
-  ]);
-  const [input, setInput] = useState("");
+export default function ChatPage() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  async function sendMessage(e: React.FormEvent) {
+  const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const userMsg: Message = { role: "user", content: input };
-    setMessages(prev => [...prev, userMsg]);
-    setInput("");
+    const newMessages = [...messages, { role: 'user', content: input }];
+    setMessages(newMessages);
     setLoading(true);
+    setInput('');
 
     try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [...messages, userMsg] }),
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: newMessages }),
       });
-
       const data = await res.json();
-      setMessages(prev => [
-        ...prev,
-        { role: "assistant", content: data.response || "⚠️ No reply" },
-      ]);
+      setMessages([...newMessages, { role: 'assistant', content: data.reply }]);
     } catch (err) {
-      setMessages(prev => [
-        ...prev,
-        { role: "assistant", content: "❌ Error: Could not connect to AI." },
+      setMessages([
+        ...newMessages,
+        { role: 'assistant', content: 'Sorry, something went wrong.' },
       ]);
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
-    <main className="flex flex-col min-h-screen bg-black text-white">
-      <h1 className="text-3xl font-bold text-center py-6">🤖 AI Assistant</h1>
-      <div className="flex-1 overflow-y-auto px-4">
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`my-2 p-3 rounded-lg max-w-[75%] ${
-              msg.role === "user" ? "bg-blue-600 ml-auto" : "bg-gray-700"
-            }`}
+    <main className="min-h-screen flex flex-col items-center bg-black text-white px-2">
+      <div className="w-full max-w-md flex flex-col flex-1 py-6">
+        <h1 className="text-2xl font-bold mb-4 text-center">AI Assistant Chat</h1>
+        <div className="flex-1 overflow-y-auto mb-4 rounded-lg bg-gray-900 border border-gray-800 p-4">
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`mb-2 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`px-3 py-2 rounded-lg max-w-[80%] break-words ${
+                  msg.role === 'user'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-100'
+                }`}
+              >
+                {msg.content}
+              </div>
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+        <form className="flex gap-2" onSubmit={sendMessage}>
+          <input
+            className="flex-1 rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white focus:outline-none focus:border-blue-600"
+            type="text"
+            placeholder="Type your message..."
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            disabled={loading}
+            autoFocus
+          />
+          <button
+            className="bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold hover:bg-blue-700 transition disabled:opacity-50"
+            type="submit"
+            disabled={loading || !input.trim()}
           >
-            {msg.content}
-          </div>
-        ))}
-        <div ref={chatEndRef} />
+            {loading ? '...' : 'Send'}
+          </button>
+        </form>
       </div>
-      <form onSubmit={sendMessage} className="flex p-4 bg-gray-900">
-        <input
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="Type your message..."
-          className="flex-1 p-2 rounded bg-gray-800 text-white"
-          disabled={loading}
-        />
-        <button
-          type="submit"
-          className="ml-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded"
-          disabled={loading}
-        >
-          {loading ? "..." : "Send"}
-        </button>
-      </form>
+      <footer className="mt-auto py-4 text-xs text-gray-400 text-center">
+        Powered by Next.js 14 + OpenAI
+      </footer>
     </main>
   );
 }
