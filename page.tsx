@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from "react";
 
 type Message = {
   role: 'user' | 'assistant';
@@ -11,67 +11,56 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const newMessage: Message = { role: 'user', content: input };
-    setMessages((prev) => [...prev, newMessage]);
+    const userMsg = { role: 'user', content: input };
+    setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch('/api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, newMessage] }),
+        body: JSON.stringify({ message: input }),
       });
 
       const data = await res.json();
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
     } catch (error) {
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Error: failed to fetch reply.' }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Error: Unable to get a response.' }]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <main className="min-h-screen w-full max-w-2xl mx-auto p-6 flex flex-col">
-      <h1 className="text-3xl font-bold mb-4 text-center">AI Problem Solver</h1>
-      <div className="flex-1 overflow-y-auto space-y-4 bg-gray-800 p-4 rounded">
+    <main className="flex flex-col h-screen bg-gray-900 text-white p-4">
+      <div className="flex-1 overflow-y-auto mb-4">
         {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`p-2 rounded ${
-              msg.role === 'user' ? 'bg-blue-600 self-end' : 'bg-gray-700 self-start'
-            }`}
-          >
+          <div key={i} className={`p-2 my-2 rounded-lg ${msg.role === 'user' ? 'bg-blue-600 self-end text-right' : 'bg-gray-700 text-left'}`}>
             {msg.content}
           </div>
         ))}
-        <div ref={chatEndRef} />
+        <div ref={chatEndRef}></div>
       </div>
-      <form onSubmit={sendMessage} className="mt-4 flex">
+
+      <form onSubmit={sendMessage} className="flex">
         <input
-          type="text"
-          className="flex-1 p-2 rounded-l bg-gray-700 border border-gray-600"
-          placeholder="Type your message..."
+          className="flex-1 p-2 rounded-l-lg text-black"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          disabled={loading}
+          placeholder="Type your message..."
         />
-        <button
-          type="submit"
-          className="px-4 py-2 bg-green-600 rounded-r disabled:opacity-50"
-          disabled={loading}
-        >
+        <button disabled={loading} className="bg-blue-600 px-4 rounded-r-lg">
           {loading ? '...' : 'Send'}
         </button>
       </form>
