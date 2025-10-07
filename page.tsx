@@ -1,101 +1,58 @@
-'use client'
+"use client";
 
-import React, { useState, useRef, useEffect } from 'react'
+import { useState } from "react";
 
-type Message = {
-  role: 'user' | 'assistant'
-  content: string
-}
+export default function ChatPage() {
+  const [input, setInput] = useState("");
+  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+  const [loading, setLoading] = useState(false);
 
-export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const chatEndRef = useRef<HTMLDivElement | null>(null)
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
-
-  async function sendMessage(e: React.FormEvent) {
-    e.preventDefault()
-    if (!input.trim() || loading) return
-
-    const userMessage: Message = { role: 'user', content: input }
-    setMessages((msgs) => [...msgs, userMessage])
-    setInput('')
-    setLoading(true)
-    setError('')
+    const newMessages = [...messages, { role: "user", content: input }];
+    setMessages(newMessages);
+    setInput("");
+    setLoading(true);
 
     try {
-      const res = await fetch('/api/route', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [...messages, userMessage] }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setMessages((msgs) => [...msgs, { role: 'assistant', content: data.response }])
-      } else {
-        setError(data.error || 'Something went wrong.')
-      }
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: newMessages }),
+      });
+      const data = await res.json();
+      setMessages([...newMessages, { role: "assistant", content: data.reply }]);
     } catch {
-      setError('Failed to connect to server.')
+      alert("Failed to fetch reply. Check API key or network.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
-      <div className="w-full max-w-md h-[75vh] bg-white rounded-xl shadow-lg flex flex-col overflow-hidden">
-        <div className="flex-1 p-4 overflow-y-auto">
-          {messages.length === 0 && (
-            <div className="text-gray-400 text-center my-8">Start the conversation…</div>
-          )}
-          {messages.map((msg, i) => (
-            <div key={i} className={`flex mb-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`px-4 py-2 rounded-lg max-w-[80%] text-sm
-                ${msg.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-900'}`}>
-                {msg.content}
-              </div>
-            </div>
-          ))}
-          {loading && (
-            <div className="flex justify-start mb-2">
-              <div className="px-4 py-2 rounded-lg bg-gray-200 animate-pulse text-gray-400 text-sm">Thinking…</div>
-            </div>
-          )}
-          <div ref={chatEndRef} />
-        </div>
-        {error && (
-          <div className="px-4 py-2 bg-red-100 text-red-700 text-sm text-center">{error}</div>
-        )}
-        <form onSubmit={sendMessage} className="p-4 flex gap-2 bg-gray-50 border-t">
-          <input
-            type="text"
-            className="flex-1 px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-600"
-            placeholder="Type a message…"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            disabled={loading}
-            autoFocus
-          />
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-            disabled={loading || !input.trim()}
-          >
-            Send
-          </button>
-        </form>
+    <main className="max-w-lg w-full bg-slate-800 rounded-2xl shadow-xl p-6 space-y-4">
+      <h1 className="text-xl font-semibold text-center mb-4">AI Chat Assistant</h1>
+      <div className="h-80 overflow-y-auto bg-slate-900 p-3 rounded-lg">
+        {messages.map((m, i) => (
+          <p key={i} className={`${m.role === "user" ? "text-right text-blue-400" : "text-left text-green-400"}`}>
+            {m.content}
+          </p>
+        ))}
+        {loading && <p className="text-gray-400 italic">Thinking...</p>}
       </div>
-      <footer className="mt-4 text-xs text-gray-400">
-        Powered by OpenAI & Next.js
-      </footer>
+      <form onSubmit={sendMessage} className="flex gap-2">
+        <input
+          className="flex-1 p-2 rounded-lg bg-slate-700 focus:outline-none"
+          placeholder="Type your message..."
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+        />
+        <button type="submit" className="bg-blue-600 px-4 py-2 rounded-lg hover:bg-blue-700">
+          Send
+        </button>
+      </form>
     </main>
-  )
+  );
 }
