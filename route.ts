@@ -1,26 +1,29 @@
-import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
+import { NextResponse } from "next/server";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-})
+export async function POST(req: Request) {
+  const { messages } = await req.json();
+  const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-export async function POST(req: NextRequest) {
+  if (!OPENAI_API_KEY)
+    return NextResponse.json({ reply: "Error: Missing OpenAI API key." }, { status: 500 });
+
   try {
-    const { messages } = await req.json()
-    if (!Array.isArray(messages)) {
-      return NextResponse.json({ error: 'Invalid messages format.' }, { status: 400 })
-    }
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages,
+      }),
+    });
 
-    const chatCompletion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages,
-    })
-
-    const response = chatCompletion.choices?.[0]?.message?.content ?? ""
-    return NextResponse.json({ response })
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content || "No response.";
+    return NextResponse.json({ reply });
   } catch (error) {
-    console.error(error)
-    return NextResponse.json({ error: "Failed to connect to OpenAI." }, { status: 500 })
+    return NextResponse.json({ reply: "API call failed." }, { status: 500 });
   }
 }
